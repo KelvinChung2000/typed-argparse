@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  core-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Build
+        run: uv build
+
+      - name: Smoke test core install without cmd2
+        run: |
+          wheel="$(ls ./dist/typed_argparse-*.whl)"
+          uv run --isolated --no-project --with "$wheel" -- python -c "
+          import importlib.util
+          from typed_argparse import build_parser
+
+          assert importlib.util.find_spec('cmd2') is None
+
+          exec('def greet(name: str, loud: bool = False):\n    return name, loud', globals())
+          parser = build_parser(greet)
+          ns = parser.parse_args(['Kelvin', '--loud'])
+          assert ns.name == 'Kelvin'
+          assert ns.loud is True
+          "
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Sync dependencies
+        run: uv sync --group dev
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Type check
+        run: uv run ty check
+
+      - name: Test
+        run: uv run pytest
+
+      - name: Build
+        run: uv build

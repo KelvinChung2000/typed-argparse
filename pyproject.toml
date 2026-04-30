@@ -1,0 +1,89 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "typed-argparse-gen"
+dynamic = ["version"]
+description = "A small typed parser generator for lightweight Python CLIs."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["argparse", "cli", "command-line", "typing", "llm"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/KelvinChung2000/typed-argparse"
+Repository = "https://github.com/KelvinChung2000/typed-argparse"
+Issues = "https://github.com/KelvinChung2000/typed-argparse/issues"
+
+[project.optional-dependencies]
+cmd2 = ["cmd2>=3.2,<4"]
+test = ["cmd2>=3.2,<4", "pytest>=8.3"]
+lint = ["ruff>=0.15.8"]
+
+[dependency-groups]
+dev = [
+  "build>=1.2.2",
+  "cmd2>=3.2,<4",
+  "pytest>=8.3",
+  "python-semantic-release>=9.21.1",
+  "ruff>=0.15.8",
+  "ty>=0.0.1a16",
+]
+
+[tool.hatch.version]
+path = "src/typed_argparse/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/typed_argparse"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/test",
+  "/README.md",
+  "/LICENSE",
+  "/CHANGELOG.md",
+  "/docs",
+  "/example",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ty]
+environment.python = "./.venv"
+
+[tool.semantic_release]
+assets = []
+branch = "main"
+changelog_file = "CHANGELOG.md"
+commit_parser = "conventional"
+commit_version_number = true
+major_on_zero = false
+allow_zero_version = true
+tag_format = "v{version}"
+version_toml = []
+version_variables = ["src/typed_argparse/__init__.py:__version__"]
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
