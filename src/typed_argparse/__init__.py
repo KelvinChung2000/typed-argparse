@@ -26,7 +26,7 @@ __all__ = [
     "with_annotated",
 ]
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 
 def with_annotated(*args: Any, **kwargs: Any) -> Any:
