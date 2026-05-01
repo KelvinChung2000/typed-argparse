@@ -450,6 +450,58 @@ class TestPositionalDefaults:
         assert action.nargs == 2
 
 
+class TestAppendActionCollections:
+    """``Option(action="append")`` on a list[T] should produce per-occurrence
+    appends, not the bulk nargs="+" we infer for ordinary collections.
+    """
+
+    def test_append_option_collects_per_occurrence(self):
+        def _func(
+            self,
+            extra: Annotated[
+                list[Path] | None, Option("--extra", action="append")
+            ] = None,
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "extra")
+        assert action.option_strings == ["--extra"]
+        # Crucial: nargs should NOT be set so each --extra takes one value.
+        assert action.nargs is None
+        assert action.type is Path
+
+        assert parser.parse_args([]).extra is None
+        assert parser.parse_args(["--extra", "a.v"]).extra == [Path("a.v")]
+        assert parser.parse_args(
+            ["--extra", "a.v", "--extra", "b.v"]
+        ).extra == [Path("a.v"), Path("b.v")]
+
+    def test_append_with_explicit_nargs_keeps_explicit_value(self):
+        # Edge case: an explicit nargs override on an append-collection still
+        # wins, matching argparse's own composition rules.
+        def _func(
+            self,
+            extra: Annotated[
+                list[str] | None, Option("--extra", action="append", nargs=2)
+            ] = None,
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "extra")
+        assert action.nargs == 2
+        assert action.option_strings == ["--extra"]
+
+    def test_plain_collection_still_uses_nargs_plus(self):
+        # Sanity check that the default "list of T" inference is unchanged
+        # when no ``action="append"`` is given.
+        def _func(self, names: list[str]) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "names")
+        assert action.nargs == "+"
+        assert action.option_strings == []
+
+
 class TestConstMetadata:
     """``Argument`` and ``Option`` should forward ``const`` to argparse."""
 
