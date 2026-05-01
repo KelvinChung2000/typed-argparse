@@ -1,6 +1,28 @@
 # CHANGELOG
 
 
+## v0.3.0 (2026-05-01)
+
+### Features
+
+- **builder**: Suppress collection nargs inference when action="append"
+  ([`228b980`](https://github.com/KelvinChung2000/typed-argparse/commit/228b9803cb42139f39adbc7fb554ec439c723765))
+
+Without this, ``Annotated[list[T], Option("--flag", action="append")]`` gets nargs="*" auto-applied
+  alongside the user's action="append", which makes argparse drop earlier occurrences instead of
+  appending each value.
+
+The fix: when the metadata explicitly sets ``action="append"`` on a collection-typed parameter, skip
+  the collection-nargs branch and forward the action through to argparse. Each ``--flag value``
+  invocation now appends a single item to the resulting list, matching long-standing argparse
+  semantics.
+
+Existing list[T] / set[T] / tuple[T, ...] inference (without ``action``) is unchanged.
+
+Covered by new TestAppendActionCollections tests: - per-occurrence appends - explicit nargs override
+  still wins - plain ``list[T]`` keeps the nargs="+" default
+
+
 ## v0.2.0 (2026-05-01)
 
 ### Chores
