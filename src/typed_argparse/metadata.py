@@ -9,12 +9,15 @@ from typing import Any
 class _BaseArgMetadata:
     """Shared fields for ``Argument`` and ``Option`` metadata."""
 
+    _UNSET: Any = object()
+
     def __init__(
         self,
         *,
         help_text: str | None = None,
         metavar: str | None = None,
         nargs: int | str | tuple[int, ...] | None = None,
+        const: Any = _UNSET,
         choices: list[Any] | None = None,
         choices_provider: Callable[..., Any] | None = None,
         completer: Callable[..., Any] | None = None,
@@ -24,11 +27,17 @@ class _BaseArgMetadata:
         self.help_text = help_text
         self.metavar = metavar
         self.nargs = nargs
+        self.const = const
         self.choices = choices
         self.choices_provider = choices_provider
         self.completer = completer
         self.table_columns = table_columns
         self.suppress_tab_hint = suppress_tab_hint
+
+    @property
+    def has_const(self) -> bool:
+        """Return True if a ``const`` value was passed to this metadata."""
+        return self.const is not _BaseArgMetadata._UNSET
 
 
 class Argument(_BaseArgMetadata):

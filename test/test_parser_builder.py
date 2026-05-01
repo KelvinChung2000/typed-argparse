@@ -389,6 +389,113 @@ class TestBuildParserEdgeCases:
         assert parser.parse_args(["BLUE"]).color is _PlainColor.BLUE
 
 
+class TestPositionalDefaults:
+    """Positional arguments with defaults should infer ``nargs="?"``."""
+
+    def test_argument_with_default_becomes_optional_positional(self):
+        default_path = Path("default.txt")
+
+        def _func(
+            self,
+            file: Annotated[Path, Argument(help_text="Input file")] = default_path,
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "file")
+        assert action.option_strings == [], "should be positional"
+        assert action.nargs == "?"
+        assert action.default == default_path
+
+        assert parser.parse_args([]).file == default_path
+        assert parser.parse_args(["custom.txt"]).file == Path("custom.txt")
+
+    def test_argument_with_optional_type_default_none(self):
+        def _func(
+            self,
+            file: Annotated[Path | None, Argument(help_text="Input file")] = None,
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "file")
+        assert action.option_strings == [], "should be positional"
+        assert action.nargs == "?"
+        assert action.default is None
+
+        assert parser.parse_args([]).file is None
+        assert parser.parse_args(["x.txt"]).file == Path("x.txt")
+
+    def test_required_positional_keeps_no_nargs(self):
+        # Sanity check: explicit ``Argument(...)`` without a default stays required.
+        def _func(
+            self,
+            name: Annotated[str, Argument(help_text="Your name")],
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "name")
+        assert action.option_strings == []
+        assert action.nargs is None
+        assert action.required is True
+
+    def test_explicit_nargs_overrides_default_inference(self):
+        defaults = ("a", "b")
+
+        def _func(
+            self,
+            names: Annotated[tuple[str, ...], Argument(nargs=2)] = defaults,
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "names")
+        assert action.nargs == 2
+
+
+class TestConstMetadata:
+    """``Argument`` and ``Option`` should forward ``const`` to argparse."""
+
+    def test_option_const_with_optional_value(self):
+        def _func(
+            self,
+            level: Annotated[
+                int | None,
+                Option("--level", nargs="?", const=5, help_text="Verbosity level"),
+            ] = None,
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "level")
+        assert action.option_strings == ["--level"]
+        assert action.nargs == "?"
+        assert action.const == 5
+        assert action.default is None
+
+        assert parser.parse_args([]).level is None
+        assert parser.parse_args(["--level"]).level == 5
+        assert parser.parse_args(["--level", "9"]).level == 9
+
+    def test_const_zero_is_preserved(self):
+        # Falsy values must still propagate.
+        def _func(
+            self,
+            level: Annotated[int, Option("--level", nargs="?", const=0)] = 1,
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "level")
+        assert action.const == 0
+
+    def test_const_omitted_does_not_pass_kwarg(self):
+        # Without ``const``, argparse should keep its own default of ``None``.
+        def _func(
+            self,
+            mode: Annotated[str, Option("--mode")] = "fast",
+        ) -> None: ...
+
+        parser = build_parser_from_function(_func)
+        action = _find_action(parser, "mode")
+        assert action.const is None
+
+
 class TestAnnotatedMetadata:
     @pytest.mark.parametrize(
         ("func", "param_name", "expected"),
