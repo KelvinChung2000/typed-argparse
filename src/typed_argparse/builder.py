@@ -117,6 +117,9 @@ def build_parser(
         if metavar:
             kwargs["metavar"] = metavar
 
+        if metadata is not None and metadata.has_const:
+            kwargs["const"] = metadata.const
+
         explicit_nargs = metadata.nargs if metadata else None
         if explicit_nargs is not None:
             kwargs["nargs"] = explicit_nargs
@@ -125,6 +128,14 @@ def build_parser(
             if collection_kind in ("set", "tuple"):
                 kwargs["action"] = _CollectionStoreAction
                 kwargs["container_factory"] = set if collection_kind == "set" else tuple
+        elif is_positional and has_default:
+            # Positional argument with a default value is "optional" in argparse
+            # parlance, expressed via ``nargs="?"``. We can infer this whenever the
+            # user has explicitly opted into a positional (via ``Argument(...)``) or
+            # when the parameter is declared positional with no metadata but does
+            # have a default. Without this branch argparse would still treat the
+            # argument as required, contradicting the parameter signature.
+            kwargs["nargs"] = "?"
 
         is_bool_flag = False
         if literal_choices is not None:
