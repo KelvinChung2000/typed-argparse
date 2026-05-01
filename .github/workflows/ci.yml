@@ -24,7 +24,7 @@ jobs:
 
       - name: Smoke test core install without cmd2
         run: |
-          wheel="$(ls ./dist/typed_argparse-*.whl)"
+          wheel="$(ls ./dist/typed_argparse_gen-*.whl)"
           uv run --isolated --no-project --with "$wheel" -- python -c "
           import importlib.util
           from typed_argparse import build_parser
