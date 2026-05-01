@@ -120,10 +120,21 @@ def build_parser(
         if metadata is not None and metadata.has_const:
             kwargs["const"] = metadata.const
 
+        explicit_action = getattr(metadata, "action", None) if metadata else None
+        # ``action="append"`` on a list[T] parameter expects per-occurrence
+        # single values, not the bulk nargs="+" we infer for ordinary
+        # collection parameters. Skipping the collection-nargs branch in that
+        # case lets argparse handle each ``--flag value`` invocation correctly,
+        # and we forward the action through (later branches only forward
+        # ``action`` for bool flags, so do it here for the collection case).
+        is_append_collection = is_collection and explicit_action == "append"
+        if is_append_collection:
+            kwargs["action"] = explicit_action
+
         explicit_nargs = metadata.nargs if metadata else None
         if explicit_nargs is not None:
             kwargs["nargs"] = explicit_nargs
-        elif is_collection:
+        elif is_collection and not is_append_collection:
             kwargs["nargs"] = "*" if has_default else "+"
             if collection_kind in ("set", "tuple"):
                 kwargs["action"] = _CollectionStoreAction
